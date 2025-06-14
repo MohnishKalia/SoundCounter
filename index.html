@@ -172,10 +172,10 @@
             const gainNode = tempAudioContext.createGain();
 
             oscillator.type = 'sine';
-            oscillator.frequency.setValueAtTime(440, tempAudioContext.currentTime); // A4 note
-            gainNode.gain.setValueAtTime(0.3, tempAudioContext.currentTime); // Gentle volume
+            oscillator.frequency.setValueAtTime(300, tempAudioContext.currentTime); // A4 note
+            gainNode.gain.setValueAtTime(1, tempAudioContext.currentTime); // Increased volume
             // Fade out over the full 3 seconds for a mellow effect
-            gainNode.gain.exponentialRampToValueAtTime(0.0001, tempAudioContext.currentTime + 3);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, tempAudioContext.currentTime + 5);
 
             oscillator.connect(gainNode);
             gainNode.connect(tempAudioContext.destination);
@@ -229,8 +229,9 @@
             try {
                 await setupAudio();
                 isListening = true;
+                isSilent = true; // Start in a "ready to detect sound" state
                 updateButtonState();
-                status.textContent = 'Listening for silence...';
+                status.textContent = 'Ready. Make a sound.'; // Updated status
                 detectSoundLoop();
             } catch (err) {
                 status.textContent = err.message || 'Microphone access denied.';
