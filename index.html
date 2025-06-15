@@ -142,6 +142,7 @@
         targetCountInput.addEventListener('change', (e) => {
             const value = parseInt(e.target.value);
             targetCount = value > 0 ? value : 1;
+            localStorage.setItem('targetCount', targetCount);
         });
         
         silenceThresholdSlider.addEventListener('input', (e) => {
@@ -152,16 +153,20 @@
                 soundThreshold = value + 1;
                 soundThresholdSlider.value = soundThreshold;
                 soundThresholdValue.textContent = soundThreshold;
+                localStorage.setItem('soundThreshold', soundThreshold);
             }
             soundThresholdSlider.min = value + 1;
+            localStorage.setItem('silenceThreshold', silenceThreshold);
         });
         soundThresholdSlider.addEventListener('input', (e) => {
             soundThreshold = parseInt(e.target.value);
             soundThresholdValue.textContent = soundThreshold;
+            localStorage.setItem('soundThreshold', soundThreshold);
         });
         silenceDurationSlider.addEventListener('input', (e) => {
             requiredSilenceMs = parseInt(e.target.value);
             silenceDurationValue.textContent = (requiredSilenceMs / 1000).toFixed(1) + 's';
+            localStorage.setItem('requiredSilenceMs', requiredSilenceMs);
         });
         
         // --- Audio Generation ---
@@ -170,23 +175,24 @@
             const tempAudioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)();
             const oscillator = tempAudioContext.createOscillator();
             const gainNode = tempAudioContext.createGain();
+            const effectSeconds = 5; // Duration of the sound effect
 
             oscillator.type = 'sine';
             oscillator.frequency.setValueAtTime(300, tempAudioContext.currentTime); // A4 note
-            gainNode.gain.setValueAtTime(1, tempAudioContext.currentTime); // Increased volume
-            // Fade out over the full 3 seconds for a mellow effect
-            gainNode.gain.exponentialRampToValueAtTime(0.01, tempAudioContext.currentTime + 5);
+            gainNode.gain.setValueAtTime(3, tempAudioContext.currentTime); // Increased volume
+            // Fade out over the full effectSeconds for a mellow effect
+            gainNode.gain.exponentialRampToValueAtTime(0.01, tempAudioContext.currentTime + effectSeconds);
 
             oscillator.connect(gainNode);
             gainNode.connect(tempAudioContext.destination);
             
             oscillator.start(tempAudioContext.currentTime);
-            // Stop the sound after 3 seconds
-            oscillator.stop(tempAudioContext.currentTime + 3);
+            // Stop the sound after effectSeconds
+            oscillator.stop(tempAudioContext.currentTime + effectSeconds);
             
             // If we created a temporary context, close it after the sound plays
             if (!audioContext) {
-                 setTimeout(() => tempAudioContext.close(), 3500); // Allow time for sound to finish
+                 setTimeout(() => tempAudioContext.close(), effectSeconds + 500); // Allow time for sound to finish
             }
         };
 
@@ -232,9 +238,13 @@
                 isSilent = true; // Start in a "ready to detect sound" state
                 updateButtonState();
                 status.textContent = 'Ready. Make a sound.'; // Updated status
+                status.classList.remove('text-gray-500', 'text-red-500');
+                status.classList.add('text-green-500');
                 detectSoundLoop();
             } catch (err) {
                 status.textContent = err.message || 'Microphone access denied.';
+                status.classList.remove('text-green-500', 'text-red-500');
+                status.classList.add('text-gray-500');
             }
         };
 
@@ -244,6 +254,8 @@
             isSilent = false;
             updateButtonState();
             status.textContent = 'Click Start to begin.';
+            status.classList.remove('text-green-500', 'text-red-500');
+            status.classList.add('text-gray-500');
             volumeMeter.style.width = '0%';
             volumeValue.textContent = 0;
         };
@@ -259,6 +271,8 @@
                     if (!isSilent) {
                         isSilent = true;
                         status.textContent = 'Ready. Make a sound.';
+                        status.classList.remove('text-gray-500', 'text-red-500');
+                        status.classList.add('text-green-500');
                     }
                 }
             } else {
@@ -268,6 +282,8 @@
                     counterDisplay.textContent = count;
                     isSilent = false;
                     status.textContent = 'Listening for silence...';
+                    status.classList.remove('text-gray-500', 'text-green-500');
+                    status.classList.add('text-red-500');
                     counterDisplay.classList.add('scale-110');
                     setTimeout(() => counterDisplay.classList.remove('scale-110'), 150);
                     
@@ -336,16 +352,35 @@
             counterDisplay.textContent = count;
             isSilent = false;
             silenceStartTime = 0;
-            if (isListening) status.textContent = 'Listening for silence...';
+            if (isListening) {
+                status.textContent = 'Listening for silence...';
+                status.classList.remove('text-gray-500', 'text-green-500');
+                status.classList.add('text-red-500');
+            } else {
+                status.classList.remove('text-green-500', 'text-red-500');
+                status.classList.add('text-gray-500');
+            }
         });
         
         const init = () => {
+            // Load settings from localStorage or use defaults
+            targetCount = parseInt(localStorage.getItem('targetCount')) || 3;
+            silenceThreshold = parseInt(localStorage.getItem('silenceThreshold')) || 5;
+            soundThreshold = parseInt(localStorage.getItem('soundThreshold')) || 20;
+            requiredSilenceMs = parseInt(localStorage.getItem('requiredSilenceMs')) || 300;
+
+            // Ensure soundThreshold is always greater than silenceThreshold after loading
+            if (soundThreshold <= silenceThreshold) {
+                soundThreshold = silenceThreshold + 1;
+                localStorage.setItem('soundThreshold', soundThreshold); // Save corrected value
+            }
+
             targetCountInput.value = targetCount;
             silenceThresholdSlider.value = silenceThreshold;
             silenceThresholdValue.textContent = silenceThreshold;
             soundThresholdSlider.value = soundThreshold;
             soundThresholdValue.textContent = soundThreshold;
-            soundThresholdSlider.min = silenceThreshold + 1;
+            soundThresholdSlider.min = silenceThreshold + 1; // Set min value for sound threshold slider
             silenceDurationSlider.value = requiredSilenceMs;
             silenceDurationValue.textContent = (requiredSilenceMs / 1000).toFixed(1) + 's';
         };
