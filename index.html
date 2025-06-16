@@ -162,10 +162,10 @@
         let count = 0, isListening = false, isTesting = false;
         let audioContext, analyser, microphoneStream, animationFrameId;
         let isSilent = false, silenceStartTime = 0;
-        let targetCount = 10;
+        let targetCount = 3;
         
         // --- Detection Parameters ---
-        let silenceThreshold = 5, soundThreshold = 20, requiredSilenceMs = 1000;
+        let silenceThreshold = 5, soundThreshold = 20, requiredSilenceMs = 300;
 
         // --- Event Listeners for Sliders & Inputs ---
         targetCountInput.addEventListener('change', (e) => {
@@ -317,7 +317,7 @@
                     setTimeout(() => counterDisplay.classList.remove('scale-110'), 150);
                     
                     // Check for target count
-                    if (count === targetCount) {
+                    if (count >= targetCount) {
                         playAlertSound();
                     }
                 }
